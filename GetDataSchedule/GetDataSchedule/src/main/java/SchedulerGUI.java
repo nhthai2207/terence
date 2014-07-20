@@ -1,6 +1,9 @@
 import java.awt.Frame;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import javax.swing.JButton;
 import javax.swing.JFrame;
@@ -14,6 +17,9 @@ public class SchedulerGUI {
 	private JTextField urlTextField;
 	private JTextField timeTextField;
 	private MainProgram mc;
+	private ScheduledExecutorService scheduledThreadPool;
+	private WorkerThread worker;
+
 	
 	/**
 	 * Create the application.
@@ -100,6 +106,21 @@ public class SchedulerGUI {
 	}
 	public void onOK(){
 		frame.setState(Frame.ICONIFIED);
+	}
+	
+	public void startJob() throws InterruptedException {
+		scheduledThreadPool = Executors.newScheduledThreadPool(5);
+		worker = new WorkerThread("Scheduler get data then add to MongoDB");
+		scheduledThreadPool.scheduleAtFixedRate(worker, 0, 5, TimeUnit.SECONDS);		
+	}
+
+	public void endJob() {
+		scheduledThreadPool.shutdown();
+		while (!scheduledThreadPool.isTerminated()) {
+			// wait for all tasks to finish
+		}
+		System.out.println("Finished all threads");
+
 	}
 	
 }
