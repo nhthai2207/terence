@@ -28,33 +28,79 @@ import com.mongodb.MongoClient;
 
 public class WorkerThread implements Runnable {
 
-	private String command;
-	
+	private String url;
 
 	public WorkerThread(String s) {
-		this.command = s;
+		this.url = s;
 	}
 
 	@Override
 	public void run() {
 		System.out.println(Thread.currentThread().getName() + " Start. Time = " + new Date());
 		try {
-			if (isRunNow()) {
-				this.execute();
-			}
+			this.execute();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
 
-	public boolean isRunNow() {
-		return false;
+	public void execute() throws Exception {		
+		CloseableHttpClient httpclient = HttpClients.createDefault();
+		HttpGet httpGet = new HttpGet(this.url);
+		CloseableHttpResponse response = httpclient.execute(httpGet);
+
+		try {
+			System.out.println(response.getStatusLine());
+			HttpEntity entity = response.getEntity();
+
+			BufferedReader br = new BufferedReader(new InputStreamReader(entity.getContent()));
+			String s = br.readLine();
+			List<String> headers = Arrays.asList(s.split(","));
+			List<DBObject> list = new ArrayList<DBObject>();
+			int i = 0;
+			while ((s = br.readLine()) != null) {
+				i++;
+				DBObject dbObj = genDBObject(headers, s);
+				list.add(dbObj);
+				if (i % 100 == 0) {
+					insertDB(list);
+					list = new ArrayList<DBObject>();
+				}
+			}
+
+			insertDB(list);
+			EntityUtils.consume(entity);
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			response.close();
+		}
 	}
 
 	@Override
 	public String toString() {
-		return this.command;
+		return this.url;
 	}
+
+	public void insertDB(List<DBObject> list) throws UnknownHostException {
+		MongoClient mongoClient = new MongoClient("localhost", 27017);
+		DB db = mongoClient.getDB("test");
+		DBCollection coll = db.getCollection("testCollection");
+		coll.insert(list);
+
+	}
+
+	public BasicDBObject genDBObject(List<String> headers, String s) {
+		BasicDBObject tmp = new BasicDBObject();
+		List<String> data = Arrays.asList(s.split(","));
+		for (int i = 0; i < data.size(); i++) {
+			tmp.append(headers.get(i), data.get(i));
+		}
+		return tmp;
+	}
+	
+	
+	
 
 	public void testPostHttpClient() throws ClientProtocolException, IOException {
 		CloseableHttpClient httpclient = HttpClients.createDefault();
@@ -111,54 +157,4 @@ public class WorkerThread implements Runnable {
 		coll.insert(doc);
 	}
 
-	public void insertDB(List<DBObject> list) throws UnknownHostException {
-		MongoClient mongoClient = new MongoClient("localhost", 27017);
-		DB db = mongoClient.getDB("test");
-		DBCollection coll = db.getCollection("testCollection");
-		coll.insert(list);
-
-	}
-
-	public BasicDBObject genDBObject(List<String> headers, String s) {
-		BasicDBObject tmp = new BasicDBObject();
-		List<String> data = Arrays.asList(s.split(","));
-		for (int i = 0; i < data.size(); i++) {
-			tmp.append(headers.get(i), data.get(i));
-		}
-		return tmp;
-	}
-
-	public void execute() throws Exception {
-		String url = "http://localhost/test.csv";
-		CloseableHttpClient httpclient = HttpClients.createDefault();
-		HttpGet httpGet = new HttpGet(url);
-		CloseableHttpResponse response = httpclient.execute(httpGet);
-
-		try {
-			System.out.println(response.getStatusLine());
-			HttpEntity entity = response.getEntity();
-
-			BufferedReader br = new BufferedReader(new InputStreamReader(entity.getContent()));
-			String s = br.readLine();
-			List<String> headers = Arrays.asList(s.split(","));
-			List<DBObject> list = new ArrayList<DBObject>();
-			int i = 0;
-			while ((s = br.readLine()) != null) {
-				i++;
-				DBObject dbObj = genDBObject(headers, s);
-				list.add(dbObj);
-				if (i % 100 == 0) {
-					insertDB(list);
-					list = new ArrayList<DBObject>();
-				}
-			}
-
-			insertDB(list);
-			EntityUtils.consume(entity);
-		} catch (Exception e) {
-			e.printStackTrace();
-		} finally {
-			response.close();
-		}
-	}
 }

@@ -1,6 +1,7 @@
 import java.awt.Frame;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.Calendar;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -20,7 +21,6 @@ public class SchedulerGUI {
 	private ScheduledExecutorService scheduledThreadPool;
 	private WorkerThread worker;
 
-	
 	/**
 	 * Create the application.
 	 */
@@ -28,9 +28,10 @@ public class SchedulerGUI {
 		this.mc = mc;
 		initialize();
 		this.initData();
+		this.restartJob();
 	}
-	
-	public void initData(){
+
+	public void initData() {
 		this.urlTextField.setText(this.mc.getConfig().url);
 		this.timeTextField.setText(this.mc.getConfig().runTimeHour + " : " + this.mc.getConfig().runTimeMin);
 	}
@@ -96,31 +97,52 @@ public class SchedulerGUI {
 		frame.getContentPane().add(updateButton);
 
 	}
-	
-	public void onUpdate(){
+
+	public void onUpdate() {
 		this.mc.updateEvent();
 	}
-	public void onExit(){
-		JOptionPane.showMessageDialog(null, "Are you sure? Program will exit and your data is not update such as scheduler!", "Confirm", JOptionPane.INFORMATION_MESSAGE);
-		System.exit(0);
+
+	public void onExit() {		
+		int result = JOptionPane.showConfirmDialog(null, "Are you sure? Program will exit and your data is not update such as scheduler!", "Confirm", JOptionPane.OK_CANCEL_OPTION);
+		if(result != 0){
+			System.exit(0);	
+		}			
 	}
-	public void onOK(){
+
+	public void onOK() {
 		frame.setState(Frame.ICONIFIED);
 	}
-	
-	public void startJob() throws InterruptedException {
-		scheduledThreadPool = Executors.newScheduledThreadPool(5);
-		worker = new WorkerThread("Scheduler get data then add to MongoDB");
-		scheduledThreadPool.scheduleAtFixedRate(worker, 0, 5, TimeUnit.SECONDS);		
+
+	public void restartJob() {
+		this.endJob();
+		this.startJob();
+	}
+
+	public void startJob() {
+		scheduledThreadPool = Executors.newScheduledThreadPool(1);
+		worker = new WorkerThread(this.mc.getConfig().url);
+		Calendar current = Calendar.getInstance();
+		int currentByMinute = current.get(Calendar.HOUR_OF_DAY) * 60 + current.get(Calendar.MINUTE);
+		int runByMinute = this.mc.getConfig().runTimeHour * 60 + this.mc.getConfig().runTimeMin;
+
+		int remainMinute = runByMinute - currentByMinute;
+		if (remainMinute < 0) {
+			remainMinute += 1440;
+		}
+		scheduledThreadPool.scheduleWithFixedDelay(worker, remainMinute, this.mc.getConfig().getIntervalRun(), TimeUnit.MINUTES);
 	}
 
 	public void endJob() {
-		scheduledThreadPool.shutdown();
-		while (!scheduledThreadPool.isTerminated()) {
-			// wait for all tasks to finish
+		try {
+			scheduledThreadPool.shutdown();
+			while (!scheduledThreadPool.isTerminated()) {
+				// wait for all tasks to finish
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
 		System.out.println("Finished all threads");
 
 	}
-	
+
 }

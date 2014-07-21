@@ -12,6 +12,8 @@ public class Configuration {
 	public int runTimeMin;
 	public String configFileLocation;
 	private boolean isConfigOK;
+	
+	private int intervalRun;
 
 	public Configuration() {
 		this.loadConfig();
@@ -20,8 +22,10 @@ public class Configuration {
 	public void loadConfig() {
 		if (isRelease) {
 			configFileLocation = "C:\\config.properties";
+			this.setIntervalRun(1440);
 		} else {
 			configFileLocation = "/data/config.properties";
+			this.setIntervalRun(1);
 		}
 		Properties prop = new Properties();
 		InputStream input = null;
@@ -84,6 +88,14 @@ public class Configuration {
 
 	public void setConfigOK(boolean isConfigOK) {
 		this.isConfigOK = isConfigOK;
+	}
+
+	public int getIntervalRun() {
+		return intervalRun;
+	}
+
+	public void setIntervalRun(int intervalRun) {
+		this.intervalRun = intervalRun;
 	}
 
 }

@@ -111,6 +111,7 @@ public class GenConfigGUI {
 	}
 	public void onCancel(){
 		mc.cancelUpdateConfig();
+		this.frame.dispose();
 	}
 	
 	public void onOK(){
