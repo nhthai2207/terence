@@ -25,10 +25,14 @@ import com.mongodb.DB;
 import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
 import com.mongodb.MongoClient;
+import com.mongodb.MongoClientURI;
 
 public class WorkerThread implements Runnable {
 
 	private String url;
+	private String textUri = "mongodb://user:test1@ds047307.mongolab.com:47307/qubidav01";
+	private String dbName = "qubidav01";
+	private String collectionName ="SchedulerJob";
 
 	public WorkerThread(String s) {
 		this.url = s;
@@ -44,12 +48,13 @@ public class WorkerThread implements Runnable {
 		}
 	}
 
-	public void execute() throws Exception {		
+	public void execute() throws Exception {
 		CloseableHttpClient httpclient = HttpClients.createDefault();
 		HttpGet httpGet = new HttpGet(this.url);
 		CloseableHttpResponse response = httpclient.execute(httpGet);
 
 		try {
+			this.cleanDB();
 			System.out.println(response.getStatusLine());
 			HttpEntity entity = response.getEntity();
 
@@ -82,11 +87,24 @@ public class WorkerThread implements Runnable {
 		return this.url;
 	}
 
+	public void cleanDB() throws UnknownHostException {		
+		MongoClientURI uri = new MongoClientURI(textUri);
+		MongoClient mongoClient = new MongoClient(uri);
+		DB db = mongoClient.getDB(dbName);
+		DBCollection coll = db.getCollection(collectionName);
+		coll.drop();
+		mongoClient.close();
+	}
+	
 	public void insertDB(List<DBObject> list) throws UnknownHostException {
-		MongoClient mongoClient = new MongoClient("localhost", 27017);
-		DB db = mongoClient.getDB("test");
-		DBCollection coll = db.getCollection("testCollection");
+		MongoClientURI uri = new MongoClientURI(textUri);
+		MongoClient mongoClient = new MongoClient(uri);
+
+		//MongoClient mongoClient = new MongoClient("localhost", 27017);
+		DB db = mongoClient.getDB(dbName);
+		DBCollection coll = db.getCollection(collectionName);
 		coll.insert(list);
+		mongoClient.close();
 
 	}
 
@@ -98,9 +116,6 @@ public class WorkerThread implements Runnable {
 		}
 		return tmp;
 	}
-	
-	
-	
 
 	public void testPostHttpClient() throws ClientProtocolException, IOException {
 		CloseableHttpClient httpclient = HttpClients.createDefault();

@@ -6,6 +6,7 @@ import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
 import javax.swing.JComboBox;
 import javax.swing.DefaultComboBoxModel;
+import java.awt.Color;
 
 public class GenConfigGUI {
 
@@ -53,6 +54,7 @@ public class GenConfigGUI {
 	 */
 	private void initialize() {
 		frame = new JFrame();
+		frame.setBackground(new Color(95, 158, 160));
 		frame.setBounds(100, 100, 358, 204);
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frame.getContentPane().setLayout(null);
@@ -105,6 +107,12 @@ public class GenConfigGUI {
 			public void actionPerformed(ActionEvent e) {
 				onOK();
 			}
+		});
+		frame.addWindowListener(new java.awt.event.WindowAdapter() {
+		    @Override
+		    public void windowClosing(java.awt.event.WindowEvent windowEvent) {
+		        onCancel();
+		    }
 		});
 
 

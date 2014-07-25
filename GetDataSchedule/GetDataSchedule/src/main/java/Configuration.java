@@ -6,7 +6,7 @@ import java.io.OutputStream;
 import java.util.Properties;
 
 public class Configuration {
-	public static boolean isRelease = false;
+	public static boolean isRelease = true;
 	public String url;
 	public int runTimeHour;
 	public int runTimeMin;
@@ -16,17 +16,20 @@ public class Configuration {
 	private int intervalRun;
 
 	public Configuration() {
+		if (isRelease) {
+			configFileLocation = "C:\\config.properties";
+			//configFileLocation = "/data/config.properties";
+			this.setIntervalRun(1440);
+		} else {
+			configFileLocation = "C:\\config.properties";
+			//configFileLocation = "/data/config.properties";
+			this.setIntervalRun(1);
+		}
+
 		this.loadConfig();
 	}
 
 	public void loadConfig() {
-		if (isRelease) {
-			configFileLocation = "C:\\config.properties";
-			this.setIntervalRun(1440);
-		} else {
-			configFileLocation = "/data/config.properties";
-			this.setIntervalRun(1);
-		}
 		Properties prop = new Properties();
 		InputStream input = null;
 		try {
@@ -55,11 +58,7 @@ public class Configuration {
 		Properties prop = new Properties();
 		OutputStream output = null;
 		try {
-			if (isRelease) {
-				configFileLocation = "C:\\config.properties";
-			} else {
-				configFileLocation = "/data/config.properties";
-			}
+			
 			output = new FileOutputStream(configFileLocation);
 
 			prop.setProperty("URL", url);

@@ -1,16 +1,14 @@
 import java.awt.Frame;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.util.Calendar;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JTextField;
+import java.awt.Color;
+import javax.swing.SwingConstants;
 
 public class SchedulerGUI {
 
@@ -18,8 +16,6 @@ public class SchedulerGUI {
 	private JTextField urlTextField;
 	private JTextField timeTextField;
 	private MainProgram mc;
-	private ScheduledExecutorService scheduledThreadPool;
-	private WorkerThread worker;
 
 	/**
 	 * Create the application.
@@ -28,7 +24,7 @@ public class SchedulerGUI {
 		this.mc = mc;
 		initialize();
 		this.initData();
-		this.restartJob();
+
 	}
 
 	public void initData() {
@@ -41,8 +37,9 @@ public class SchedulerGUI {
 	 */
 	private void initialize() {
 		frame = new JFrame();
-		frame.setBounds(100, 100, 358, 171);
+		frame.setBackground(new Color(95, 158, 160));
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		frame.setBounds(100, 100, 358, 171);
 		frame.getContentPane().setLayout(null);
 
 		JLabel lblNewLabel = new JLabel("URL");
@@ -54,24 +51,27 @@ public class SchedulerGUI {
 		frame.getContentPane().add(lblNewLabel_1);
 
 		urlTextField = new JTextField();
+		lblNewLabel.setLabelFor(urlTextField);
 		urlTextField.setEditable(false);
 		urlTextField.setBounds(110, 19, 217, 28);
 		frame.getContentPane().add(urlTextField);
 		urlTextField.setColumns(10);
 
 		timeTextField = new JTextField();
+		lblNewLabel_1.setLabelFor(timeTextField);
+		timeTextField.setHorizontalAlignment(SwingConstants.CENTER);
 		timeTextField.setEditable(false);
-		timeTextField.setBounds(110, 61, 128, 28);
+		timeTextField.setBounds(110, 61, 70, 28);
 		frame.getContentPane().add(timeTextField);
 		timeTextField.setColumns(10);
 
-		JButton okButton = new JButton("OK");
+		JButton okButton = new JButton("OK");		
 		okButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				onOK();
 			}
 		});
-		okButton.setBounds(61, 105, 70, 29);
+		okButton.setBounds(60, 105, 70, 29);
 		frame.getContentPane().add(okButton);
 
 		JButton exitButton = new JButton("Exit");
@@ -80,11 +80,11 @@ public class SchedulerGUI {
 				onExit();
 			}
 		});
-		exitButton.setBounds(256, 105, 80, 29);
+		exitButton.setBounds(242, 105, 85, 29);
 		frame.getContentPane().add(exitButton);
 
 		JLabel lbleveryDay = new JLabel("(Every day)");
-		lbleveryDay.setBounds(246, 67, 106, 16);
+		lbleveryDay.setBounds(180, 67, 70, 16);
 		frame.getContentPane().add(lbleveryDay);
 
 		JButton updateButton = new JButton("Update");
@@ -93,8 +93,36 @@ public class SchedulerGUI {
 				onUpdate();
 			}
 		});
-		updateButton.setBounds(158, 105, 80, 29);
+		updateButton.setBounds(143, 105, 80, 29);
+
+		frame.addWindowListener(new java.awt.event.WindowAdapter() {
+			@Override
+			public void windowClosing(java.awt.event.WindowEvent windowEvent) {
+				onExit();
+			}
+		});
+
 		frame.getContentPane().add(updateButton);
+
+		JButton btnRunNow = new JButton("Run Now");
+		btnRunNow.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				onRunNow();
+			}
+		});		
+		btnRunNow.setBounds(242, 62, 85, 29);
+		frame.getContentPane().add(btnRunNow);
+
+	}
+
+	public void onRunNow() {
+		boolean tmp = this.mc.runNowJob();
+		String msg = "Run done. Go to database for checking result";
+		if(!tmp){
+			msg = "It's problem with run. Run again to contact administrator";
+		}
+		
+		JOptionPane.showMessageDialog(null, msg);
 
 	}
 
@@ -102,47 +130,15 @@ public class SchedulerGUI {
 		this.mc.updateEvent();
 	}
 
-	public void onExit() {		
-		int result = JOptionPane.showConfirmDialog(null, "Are you sure? Program will exit and your data is not update such as scheduler!", "Confirm", JOptionPane.OK_CANCEL_OPTION);
-		if(result != 0){
-			System.exit(0);	
-		}			
+	public void onExit() {
+		int result = JOptionPane.showConfirmDialog(null, "Are you sure? Program will exit and your data is not update such as scheduler!", "Confirm",
+				JOptionPane.OK_CANCEL_OPTION);
+		if (result == 0) {
+			System.exit(0);
+		}
 	}
 
 	public void onOK() {
 		frame.setState(Frame.ICONIFIED);
 	}
-
-	public void restartJob() {
-		this.endJob();
-		this.startJob();
-	}
-
-	public void startJob() {
-		scheduledThreadPool = Executors.newScheduledThreadPool(1);
-		worker = new WorkerThread(this.mc.getConfig().url);
-		Calendar current = Calendar.getInstance();
-		int currentByMinute = current.get(Calendar.HOUR_OF_DAY) * 60 + current.get(Calendar.MINUTE);
-		int runByMinute = this.mc.getConfig().runTimeHour * 60 + this.mc.getConfig().runTimeMin;
-
-		int remainMinute = runByMinute - currentByMinute;
-		if (remainMinute < 0) {
-			remainMinute += 1440;
-		}
-		scheduledThreadPool.scheduleWithFixedDelay(worker, remainMinute, this.mc.getConfig().getIntervalRun(), TimeUnit.MINUTES);
-	}
-
-	public void endJob() {
-		try {
-			scheduledThreadPool.shutdown();
-			while (!scheduledThreadPool.isTerminated()) {
-				// wait for all tasks to finish
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		System.out.println("Finished all threads");
-
-	}
-
 }
